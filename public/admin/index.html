@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MORDREX CONTROL PANEL</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div id="login-screen" class="login-screen" style="display:none;">
+  <div class="panel login-card">
+    <h2 style="font-family:'Rye',serif;font-weight:400;margin-top:0;">MORDREX<br>CONTROL PANEL</h2>
+    <form id="login-form">
+      <div class="field">
+        <label>Identifiant</label>
+        <input type="text" id="l-user" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="l-pass" required autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" id="login-btn" type="submit">SE CONNECTER</button>
+    </form>
+  </div>
+</div>
+
+<div id="dashboard" style="display:none;">
+  <div class="topbar">
+    <div class="brand">MORDREX <span>CONTROL</span></div>
+    <div style="display:flex;gap:8px;align-items:center;"><a class="btn btn-outline btn-sm" href="/">Voir le site</a><button class="btn btn-outline btn-sm" id="logout-btn">Déconnexion</button></div>
+  </div>
+  <div class="wrap">
+    <div class="admin-tabs">
+      <button data-tab="stats" class="active">Statistiques</button>
+      <button data-tab="rewards">Récompenses</button>
+      <button data-tab="participants">Participants</button>
+      <button data-tab="coins">Coins</button>
+      <button data-tab="referrals">Parrainages</button>
+      <button data-tab="draw">Tirage</button>
+      <button data-tab="settings">Paramètres</button>
+      <button data-tab="audit">Journal</button>
+    </div>
+    <div id="tab-content"></div>
+  </div>
+</div>
+
+<div id="modal-holder"></div>
+
+<script src="/js/api.js"></script>
+<script src="/admin/admin.js"></script>
+</body>
+</html>

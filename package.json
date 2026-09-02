@@ -1,0 +1,17 @@
+{
+  "name": "outlaw-mordrex-giveaway",
+  "version": "2.1.0",
+  "description": "OUTLAW MORDREX - plateforme de giveaway (participants, coins, parrainage, tirage)",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}

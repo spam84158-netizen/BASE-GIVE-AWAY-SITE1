@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Récompense — OUTLAW MORDREX</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">OUTLAW <span>MORDREX</span></div>
+  <nav><a href="/rewards.html">← Récompenses</a><a href="/admin/">Admin</a></nav>
+</div>
+
+<div class="wrap" id="content">
+  <div class="skeleton" style="height:220px;"></div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+(async function () {
+  const params = new URLSearchParams(window.location.search);
+  const id = String(params.get('id') || params.get('reward') || '').trim();
+  const content = document.getElementById('content');
+  if (!id) { content.innerHTML = '<div class="empty-state">Récompense introuvable.</div>'; return; }
+
+  // Conserver la récompense choisie pendant tout le parcours.
+  sessionStorage.setItem('outlaw_selected_reward', id);
+  localStorage.setItem('outlaw_selected_reward', id);
+
+  let r;
+  try {
+    r = await api('/api/rewards/' + encodeURIComponent(id));
+  } catch (e) {
+    content.innerHTML = '<div class="empty-state">Cette récompense n'existe pas ou n'est plus disponible.</div>';
+    return;
+  }
+
+  // Le détail de la récompense doit rester visible même si la liste des joueurs
+  // rencontre un problème secondaire. Une erreur du classement ne doit jamais
+  // transformer une récompense valide en « indisponible ».
+  content.innerHTML = `
+    <div class="panel" style="margin-top:20px;">
+      ${r.image ? `<img src="${escapeHtml(r.image)}" style="width:100%;border-radius:10px;margin-bottom:16px;max-height:220px;object-fit:cover;">` : ''}
+      <div class="badge ${r.status}">${r.status === 'completed' ? 'TIRAGE EFFECTUÉ' : 'EN COURS'}</div>
+      <h1 style="font-family:'Rye',serif;font-weight:400;font-size:26px;margin:12px 0 6px;">${escapeHtml(r.name)}</h1>
+      <p class="muted">${escapeHtml(r.description || 'Aucune description fournie.')}</p>
+      ${r.conditions ? `<p class="muted"><strong style="color:var(--bone);">Conditions :</strong> ${escapeHtml(r.conditions)}</p>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 4px;">
+        <span class="muted">Objectif</span><span class="coin-tag">${r.requiredCoins} COINS</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <span class="muted">Parrainage</span><span style="color:var(--success);font-weight:600;">+${r.referralBonus} COINS / participant validé</span>
+      </div>
+      <p class="muted"><strong id="player-count">${r.participantsCount}</strong> joueur(s) déjà inscrit(s) sur cette récompense · ${r.winnersCount} gagnant(s) prévu(s)</p>
+      <div class="panel" style="margin-top:14px;padding:8px 14px;" id="player-list"><p class="muted">Chargement des joueurs…</p></div>
+    </div>
+    <a id="participate-reward" class="btn btn-primary" style="margin-top:16px;" href="/register.html?reward=${encodeURIComponent(r.id)}">PARTICIPER À CETTE RÉCOMPENSE</a>
+  `;
+
+  document.getElementById('participate-reward').addEventListener('click', function () {
+    sessionStorage.setItem('outlaw_selected_reward', String(r.id));
+    localStorage.setItem('outlaw_selected_reward', String(r.id));
+  });
+
+  try {
+    const board = await api('/api/participants/by-reward/' + encodeURIComponent(r.id));
+    const count = document.getElementById('player-count');
+    const list = document.getElementById('player-list');
+    if (count) count.textContent = board.total;
+    if (list) {
+      list.innerHTML = board.total === 0
+        ? '<p class="muted">Aucun joueur pour le moment. Tu peux être le premier.</p>'
+        : board.participants.map(p => `<div class="data-row"><div class="main"><strong>#${p.position} — ${escapeHtml(p.name)}</strong><span>${p.coins} coins</span></div></div>`).join('');
+    }
+  } catch (e) {
+    const list = document.getElementById('player-list');
+    if (list) list.innerHTML = '<p class="muted">La liste des joueurs est momentanément indisponible.</p>';
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classement — OUTLAW MORDREX</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">OUTLAW <span>MORDREX</span></div>
+  <nav>
+    <a href="/index.html">Accueil</a>
+    <a href="/participants.html">Participants</a>
+    <a href="/leaderboard.html" class="active">Classement</a>
+  </nav>
+</div>
+
+<div class="wrap">
+  <h1 class="section-title" style="margin-top:24px;">Leaderboard</h1>
+  <p class="muted" style="margin-bottom:16px;">Les chasseurs de coins les plus efficaces du giveaway.</p>
+  <div class="panel" id="list" style="padding:6px 14px;">
+    <div class="skeleton"></div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+(async function () {
+  const medals = ['🥇', '🥈', '🥉'];
+  const rankClass = ['rank-1', 'rank-2', 'rank-3'];
+  try {
+    const list = await api('/api/leaderboard');
+    const listEl = document.getElementById('list');
+    if (list.length === 0) {
+      listEl.innerHTML = '<div class="empty-state"><div class="icon">🏆</div>Personne au classement pour l\'instant.</div>';
+      return;
+    }
+    listEl.innerHTML = list.map((p, i) => `
+      <div class="participant-row">
+        <span class="pnum ${rankClass[i] || ''}">${medals[i] || '#' + (i + 1)}</span>
+        ${avatarHtml(p.profileImage, p.name)}
+        <div class="pinfo"><strong>${escapeHtml(p.name)}</strong><span>#${String(p.number).padStart(3, '0')}</span></div>
+        <div class="pcoins">${p.coins} coins</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('list').innerHTML = '<div class="empty-state">Impossible de charger le classement.</div>';
+  }
+})();
+</script>
+</body>
+</html>

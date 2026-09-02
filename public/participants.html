@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Participants — OUTLAW MORDREX</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">OUTLAW <span>MORDREX</span></div>
+  <nav>
+    <a href="/index.html">Accueil</a>
+    <a href="/participants.html" class="active">Participants</a>
+    <a href="/leaderboard.html">Classement</a>
+  </nav>
+</div>
+
+<div class="wrap">
+  <h1 class="section-title" style="margin-top:24px;">Liste des participants</h1>
+  <div class="search-box">
+    <input type="text" id="search" placeholder="Rechercher un nom ou un numéro…">
+  </div>
+  <p class="muted" id="total" style="margin-bottom:14px;"></p>
+  <div class="panel" id="list" style="padding:6px 14px;">
+    <div class="skeleton"></div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+let searchTimer;
+async function load(search) {
+  const listEl = document.getElementById('list');
+  try {
+    const data = await api('/api/participants?search=' + encodeURIComponent(search || ''));
+    document.getElementById('total').textContent = `TOTAL PARTICIPANTS : ${data.total}`;
+    if (data.participants.length === 0) {
+      listEl.innerHTML = '<div class="empty-state"><div class="icon">🔎</div>Aucun participant trouvé.</div>';
+      return;
+    }
+    listEl.innerHTML = data.participants.map((p) => `
+      <div class="participant-row">
+        <span class="pnum">#${String(p.number).padStart(3, '0')}</span>
+        ${avatarHtml(p.profileImage, p.name)}
+        <div class="pinfo">
+          <strong>${escapeHtml(p.name)}</strong>
+          <span>${p.referralsCount} parrainage(s)${p.description ? ' · ' + escapeHtml(p.description.slice(0, 40)) : ''}</span>
+        </div>
+        <div class="pcoins">${p.coins} coins</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    listEl.innerHTML = '<div class="empty-state">Impossible de charger la liste.</div>';
+  }
+}
+load();
+document.getElementById('search').addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => load(e.target.value), 300);
+});
+</script>
+</body>
+</html>

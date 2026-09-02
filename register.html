@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inscription — OUTLAW MORDREX</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">OUTLAW <span>MORDREX</span></div>
+  <nav><a href="/rewards.html">← Récompenses</a></nav>
+</div>
+
+<div class="wrap">
+  <div id="conflict" style="display:none;" class="panel">
+    <div class="badge" style="border-color:var(--danger);color:var(--danger);">⚠ <span id="conflict-title"></span></div>
+    <p id="conflict-message" style="margin:14px 0;"></p>
+    <a class="btn btn-primary" id="conflict-action" href="/recover.html">ACCÉDER À MON ESPACE</a>
+  </div>
+
+  <form id="reg-form" class="panel" style="margin-top:18px;">
+    <h2 style="font-family:'Rye',serif;font-weight:400;margin-top:0;">Inscription</h2>
+    <p class="muted" id="reward-name" style="margin-top:-8px;"></p>
+
+    <div class="field">
+      <label>Nom du participant <span class="req">— obligatoire</span></label>
+      <input type="text" id="f-name" required maxlength="60" placeholder="Ex. Shadow">
+      <p class="muted" id="name-warn" style="display:none;color:var(--danger);margin:6px 0 0;"></p>
+    </div>
+
+    <div class="field">
+      <label>Numéro du participant <span class="req">— obligatoire</span></label>
+      <input type="text" id="f-phone" required maxlength="30" placeholder="Ex. +225 07 00 00 00 00">
+      <p class="muted" id="phone-warn" style="display:none;color:var(--danger);margin:6px 0 0;"></p>
+    </div>
+
+    <div class="field">
+      <label>Photo de profil <span class="opt">— facultative</span></label>
+      <div class="upload-box" id="upload-box">
+        <div id="upload-placeholder">Touche ici pour ajouter une photo</div>
+        <img id="upload-preview" style="display:none;">
+      </div>
+      <input type="file" id="f-photo" accept="image/png, image/jpeg, image/webp" style="display:none;">
+    </div>
+
+    <div class="field">
+      <label>Description / Bio <span class="opt">— facultative</span></label>
+      <textarea id="f-desc" maxlength="500" placeholder="Quelques mots sur toi…"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary" id="submit-btn">VALIDER MON INSCRIPTION</button>
+  </form>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+(async function () {
+  const params = new URLSearchParams(window.location.search);
+  const rewardId = String(params.get('reward') || params.get('id') || params.get('rewardId') || sessionStorage.getItem('outlaw_selected_reward') || localStorage.getItem('outlaw_selected_reward') || '').trim();
+  if (!rewardId) { window.location.href = '/rewards.html'; return; }
+  sessionStorage.setItem('outlaw_selected_reward', rewardId);
+  localStorage.setItem('outlaw_selected_reward', rewardId);
+
+  try {
+    await api('/api/participants/me');
+    window.location.href = '/space.html';
+    return;
+  } catch (e) { /* pas encore inscrit */ }
+
+  let reward;
+  try {
+    reward = await api('/api/rewards/' + encodeURIComponent(rewardId));
+    document.getElementById('reward-name').textContent = 'Récompense choisie : ' + reward.name;
+    document.getElementById('player-count').textContent = 'Joueurs déjà inscrits : ' + reward.participantsCount + ' · Tu seras le n°' + (reward.participantsCount + 1) + ' si tu valides maintenant.';
+  } catch (e) {
+    toast('Cette récompense est introuvable.', 'error');
+    window.location.href = '/rewards.html';
+    return;
+  }
+
+  const uploadBox = document.getElementById('upload-box');
+  const fileInput = document.getElementById('f-photo');
+  uploadBox.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { toast('Image trop lourde (3 Mo max).', 'error'); fileInput.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      document.getElementById('upload-placeholder').style.display = 'none';
+      const img = document.getElementById('upload-preview');
+      img.src = e.target.result;
+      img.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  let nameCheckTimer, phoneCheckTimer;
+  const nameInput = document.getElementById('f-name');
+  const phoneInput = document.getElementById('f-phone');
+  const nameWarn = document.getElementById('name-warn');
+  const phoneWarn = document.getElementById('phone-warn');
+
+  nameInput.addEventListener('input', () => {
+    clearTimeout(nameCheckTimer);
+    nameWarn.style.display = 'none';
+    const v = nameInput.value.trim();
+    if (v.length < 2) return;
+    nameCheckTimer = setTimeout(async () => {
+      try {
+        const r = await api('/api/participants/check-duplicate?name=' + encodeURIComponent(v));
+        if (r.nameTaken) { nameWarn.textContent = 'Ce nom est déjà pris.'; nameWarn.style.display = 'block'; }
+      } catch (e) {}
+    }, 400);
+  });
+
+  phoneInput.addEventListener('input', () => {
+    clearTimeout(phoneCheckTimer);
+    phoneWarn.style.display = 'none';
+    const v = phoneInput.value.trim();
+    if (v.length < 4) return;
+    phoneCheckTimer = setTimeout(async () => {
+      try {
+        const r = await api('/api/participants/check-duplicate?phone=' + encodeURIComponent(v));
+        if (r.phoneTaken) { phoneWarn.textContent = 'Ce numéro est déjà utilisé.'; phoneWarn.style.display = 'block'; }
+      } catch (e) {}
+    }, 400);
+  });
+
+  document.getElementById('reg-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'ENVOI EN COURS…';
+
+    const fd = new FormData();
+    fd.append('name', nameInput.value.trim());
+    fd.append('phoneNumber', phoneInput.value.trim());
+    fd.append('rewardId', rewardId);
+    fd.append('description', document.getElementById('f-desc').value.trim());
+    if (fileInput.files[0]) fd.append('photo', fileInput.files[0]);
+
+    try {
+      await api('/api/participants/register', { method: 'POST', body: fd });
+      toast('Inscription validée !', 'success');
+      window.location.href = '/space.html';
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'VALIDER MON INSCRIPTION';
+      if (err.status === 409 && err.data) {
+        document.getElementById('reg-form').style.display = 'none';
+        document.getElementById('conflict').style.display = 'block';
+        document.getElementById('conflict-title').textContent = err.data.error;
+        if (err.data.existingNumber) {
+          document.getElementById('conflict-message').textContent =
+            `${err.data.message} (Participant #${String(err.data.existingNumber).padStart(3, '0')}). Utilise le code de récupération reçu lors de ta première inscription pour accéder à ton espace.`;
+        } else {
+          document.getElementById('conflict-message').textContent = err.data.message + ' Choisis un autre numéro.';
+          document.getElementById('conflict-action').style.display = 'none';
+          document.getElementById('reg-form').style.display = 'block';
+          document.getElementById('conflict').style.display = 'none';
+        }
+      } else {
+        toast(err.message, 'error');
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
